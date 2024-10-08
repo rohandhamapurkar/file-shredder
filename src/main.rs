@@ -1,18 +1,21 @@
-use std::fs::{File, OpenOptions};
-use std::io::{self, Write, Seek, SeekFrom};
-use std::path::Path;
-use std::sync::{Arc, Mutex};
-use std::thread;
 use rand::Rng;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Seek, SeekFrom, Write};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Instant;
+use std::{env, thread, process};
 
-fn shred_file_parallel(path: &str, passes: u32, threads: u32) -> io::Result<()> {
-    let file_path = Arc::new(Path::new(path).to_path_buf());
+fn shred_file_parallel(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
+    let start_time = Instant::now();
+
+    let file_path = Arc::new(path);
     let file_size = file_path.metadata()?.len();
     let chunk_size = file_size / (threads as u64);
 
-    let mut handles = vec![];
-
     for pass in 0..passes {
+        let mut handles = vec![];
+
         for i in 0..threads {
             let file_path = Arc::clone(&file_path);
             let handle = thread::spawn(move || -> io::Result<()> {
@@ -40,7 +43,7 @@ fn shred_file_parallel(path: &str, passes: u32, threads: u32) -> io::Result<()> 
         }
 
         // Wait for all threads in this pass to complete
-        for handle in handles.drain(..) {
+        for handle in handles {
             handle.join().unwrap()?;
         }
 
@@ -48,19 +51,46 @@ fn shred_file_parallel(path: &str, passes: u32, threads: u32) -> io::Result<()> 
     }
 
     // Delete the file after shredding
-    // std::fs::remove_file(&*file_path)?;
-    println!("File shredded and deleted successfully");
+    std::fs::remove_file(&*file_path)?;
+
+    let total_duration = start_time.elapsed();
+    println!("File shredded and deleted in {:?}", total_duration);
 
     Ok(())
 }
 
-fn main() {
-    let file_path = "file.txt";
-    let passes = 1000; // Number of overwrite passes
-    let threads = 4; // Number of threads to use
+macro_rules! print_exit {
+    ($message:expr) => {{
+        // print error message
+        eprintln!("error: {}", $message);
+        // exit the process.
+        process::exit(1);
+    }};
+}
 
-    match shred_file_parallel(file_path, passes, threads) {
-        Ok(_) => println!("File shredding completed successfully"),
-        Err(e) => eprintln!("Error: {}", e),
+fn get_src_path_from_args() -> PathBuf {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        print_exit!("Please provide folder or file path to me!");
+    }
+
+    let src_path = PathBuf::from(&args[1]);
+
+    if !fs::exists(&src_path).unwrap_or_else(|e| {
+        print_exit!(e);
+    }) {
+        print_exit!("Path doesn't exist!");
+    }
+
+    return src_path;
+}
+
+fn main() {
+    let file_path = get_src_path_from_args();
+    let passes = 5; // Number of overwrite passes
+
+    match shred_file_parallel(file_path, passes, 4) {
+        Ok(_) => {},
+        Err(e) => print_exit!(e),
     }
 }
