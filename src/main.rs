@@ -6,7 +6,7 @@ fn main() {
     let file_path = get_src_path_from_args();
     let passes = 5; // Number of overwrite passes
 
-    match shred_file_parallel(file_path, passes, 4) {
+    match shred_file_parallel(file_path, passes, 5) {
         Ok(_) => {}
         Err(e) => print_exit!(e),
     }
