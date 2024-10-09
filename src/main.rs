@@ -4,8 +4,7 @@ use file_shredder::get_args;
 use file_shredder::print_exit;
 use file_shredder::shred_file;
 use file_shredder::shred_folder;
-mod errors;
-use errors::CustomError::PathNonExistErr;
+use file_shredder::errors::CustomError::PathNonExistErr;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (src_path, passes) = get_args().unwrap_or_else(|e| {

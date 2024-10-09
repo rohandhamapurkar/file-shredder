@@ -1,4 +1,3 @@
-use errors::CustomError;
 use rand::Rng;
 use std::collections::VecDeque;
 use std::error::Error;
@@ -10,9 +9,10 @@ use std::time::Instant;
 use std::usize;
 use std::{env, fs, io, thread, u32};
 use walkdir::WalkDir;
-mod errors;
+pub mod errors;
 use errors::CustomError::NotEnoughArgumentsErr;
 use errors::CustomError::PathNonExistErr;
+use errors::CustomError::InvalidPassesErr;
 
 #[macro_export]
 macro_rules! print_exit {
@@ -33,11 +33,11 @@ fn generate_random_array(length: u64) -> Vec<u8> {
 
 pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> Result<(), Box<dyn Error>> {
     if passes == 0 {
-        return Err(Box::new(CustomError::InvalidPassesErr));
+        return Err(Box::new(InvalidPassesErr));
     }
 
     if threads == 0 {
-        return Err(Box::new(CustomError::PathNonExistErr));
+        return Err(Box::new(PathNonExistErr));
     }
 
     let start_time = Instant::now();
