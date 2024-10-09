@@ -5,6 +5,8 @@ use std::fmt;
 pub enum CustomError {
     NotEnoughArgumentsErr,
     PathNonExistErr,
+    InvalidPassesErr,
+    InvalidThreadCountErr
 }
 
 impl fmt::Display for CustomError {
@@ -12,6 +14,8 @@ impl fmt::Display for CustomError {
         match self {
             CustomError::NotEnoughArgumentsErr => write!(f, "Not enough arguments provided"),
             CustomError::PathNonExistErr => write!(f, "Path doesn't exist"),
+            CustomError::InvalidPassesErr => write!(f, "Passes value is invalid"),
+            CustomError::InvalidThreadCountErr => write!(f, "Thread count value is invalid"),
         }
     }
 }
