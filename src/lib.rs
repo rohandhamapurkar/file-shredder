@@ -1,12 +1,17 @@
 use rand::Rng;
 use std::collections::VecDeque;
-use std::fs::{self, OpenOptions};
-use std::io::{self, Seek, SeekFrom, Write};
+use std::error::Error;
+use std::io::Seek;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
-use std::{env, thread};
+use std::usize;
+use std::{env, fs, io, thread, u32};
 use walkdir::WalkDir;
+mod errors;
+use errors::CustomError::NotEnoughArgumentsErr;
+use errors::CustomError::PathNonExistErr;
 
 #[macro_export]
 macro_rules! print_exit {
@@ -25,7 +30,7 @@ fn generate_random_array(length: u64) -> Vec<u8> {
     return vec;
 }
 
-pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
+pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> Result<(), Box<dyn Error>> {
     let start_time = Instant::now();
 
     let file_path = Arc::new(path);
@@ -42,7 +47,7 @@ pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
         for i in 0..threads {
             let file_path = Arc::clone(&file_path);
             let handle = thread::spawn(move || -> io::Result<()> {
-                let mut file = OpenOptions::new().write(true).open(&*file_path)?;
+                let mut file = fs::OpenOptions::new().write(true).open(&*file_path)?;
 
                 let start: u64 = i as u64 * chunk_size;
                 let end = if i == threads - 1 {
@@ -50,7 +55,7 @@ pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
                 } else {
                     (i as u64 + 1) * chunk_size
                 };
-                file.seek(SeekFrom::Start(start))?;
+                file.seek(io::SeekFrom::Start(start))?;
 
                 let data_length = end - start;
                 let random_data = generate_random_array(data_length);
@@ -72,7 +77,7 @@ pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
     }
 
     // Delete the file after shredding
-    std::fs::remove_file(&*file_path)?;
+    fs::remove_file(&*file_path)?;
 
     let total_duration = start_time.elapsed();
     println!("{} shredded and deleted in {:?}", file_name, total_duration);
@@ -80,7 +85,7 @@ pub fn shred_file(path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
     Ok(())
 }
 
-pub fn shred_folder(dir_path: PathBuf, passes: u32, threads: u32) -> io::Result<()> {
+pub fn shred_folder(dir_path: PathBuf, passes: u32, threads: u32) -> Result<(), Box<dyn Error>> {
     let mut deque: VecDeque<PathBuf> = VecDeque::new();
     for entry in WalkDir::new(&dir_path) {
         let entry = entry.unwrap();
@@ -100,25 +105,32 @@ pub fn shred_folder(dir_path: PathBuf, passes: u32, threads: u32) -> io::Result<
     }
 
     // delete all the directories after shredding files.
-    std::fs::remove_dir_all(dir_path)?;
+    fs::remove_dir_all(dir_path)?;
     println!("Deleted directories");
 
     Ok(())
 }
 
-pub fn get_src_path_from_args() -> PathBuf {
+pub fn get_args() -> Result<(PathBuf, u32), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
+
     if args.len() < 2 {
-        print_exit!("Please provide folder or file path to me!");
+        println!("Usage: {} <path> [passes]", args[0]);
+        return Err(Box::new(NotEnoughArgumentsErr));
     }
 
-    let src_path = PathBuf::from(&args[1]);
+    let mut src_path: PathBuf = PathBuf::new();
+    let mut passes: u32 = 5;
 
-    if !fs::exists(&src_path).unwrap_or_else(|e| {
-        print_exit!(e);
-    }) {
-        print_exit!("Path doesn't exist!");
+    if args.len() == 2 {
+        src_path = PathBuf::from(&args[1]);
+        if !fs::exists(&src_path)? {
+            return Err(Box::new(PathNonExistErr));
+        }
+    }
+    if args.len() == 3 {
+        passes = args[2].parse::<u32>()?;
     }
 
-    return src_path;
+    return Ok((src_path, passes));
 }
