@@ -150,10 +150,6 @@ mod tests {
     use std::{io::Read, path::Path};
     use tempfile::{NamedTempFile, TempDir};
 
-    // fn cleanup_temp_file(path: &PathBuf) {
-    //     fs::remove_file(path).expect("Failed to remove temp file");
-    // }
-
     #[test]
     fn test_generate_random_array() {
         let result = generate_random_array(5);
