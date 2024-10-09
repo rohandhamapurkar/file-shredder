@@ -348,7 +348,6 @@ mod tests {
 
         #[cfg(windows)]
         {
-            use std::os::windows::fs::FileAttributesExt;
             let mut perms = fs::metadata(&readonly_file_path)?.permissions();
             perms.set_readonly(true);
             fs::set_permissions(&readonly_file_path, perms)?;
