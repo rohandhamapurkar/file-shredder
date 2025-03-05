@@ -17,6 +17,17 @@ File Shredder is designed to securely delete sensitive files and directories by 
 
 ## Installation
 
+### Pre-built Binaries
+
+Download the latest pre-built binary for your platform from the [Releases](https://github.com/rohandhamapurkar/file-shredder/releases) page.
+
+Available platforms:
+- Windows (x64)
+- macOS (Intel and Apple Silicon)
+- Linux (x64)
+
+### From Source
+
 ### From Source
 
 1. Clone the repository:
@@ -112,6 +123,19 @@ cargo test
 ```bash
 cargo doc --open
 ```
+
+### CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- Automatically builds binaries for multiple platforms (Windows, macOS, Linux)
+- Creates releases when new version tags are pushed
+- Supports both x64 and ARM64 architectures (Apple Silicon)
+
+To create a new release:
+1. Tag the commit with a version (e.g., `git tag v1.0.0`)
+2. Push the tag to GitHub (`git push origin v1.0.0`)
+3. The workflow will automatically build binaries and create a release
 
 ## License
 
